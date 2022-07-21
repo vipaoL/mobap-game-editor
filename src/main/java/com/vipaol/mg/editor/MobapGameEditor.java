@@ -45,6 +45,7 @@ public class MobapGameEditor extends JFrame implements Runnable {
     boolean stopped = false;
     EditorCanvas c = new EditorCanvas();
     JPanel rightBtnPanel;
+    JPanel rightBtnPanel2nd;
     int w = 800;
     int h = 600;
     int rightPanelW = w / 5;
@@ -90,6 +91,7 @@ public class MobapGameEditor extends JFrame implements Runnable {
         addLine.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+            	System.out.println("line");
                 c.elements.place(2);
             }
         });
@@ -104,6 +106,7 @@ public class MobapGameEditor extends JFrame implements Runnable {
 
         ///////////////////////// RIGHT
         rightBtnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        //rightBtnPanel2nd = new JPanel(new FlowLayout(FlowLayout.TRAILING));
 
         JButton deleteShape = new JButton("Delete");
         deleteShape.addActionListener(new ActionListener() {
@@ -120,12 +123,37 @@ public class MobapGameEditor extends JFrame implements Runnable {
                 edit(c.selected);
             }
         });
+        
+        JButton moveToStart = new JButton("Move all to 0 0");
+        moveToStart.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                c.elements.moveAllToStartPoint();
+            }
+        });
+        JButton edit1 = new JButton("Move point 1");
+        edit1.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	System.out.println("move");
+            	c.elements.edit(c.selected, 1);
+            }
+        });
+        JButton edit2 = new JButton("Move point 2");
+        edit2.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	System.out.println("move");
+                c.elements.edit(c.selected, 2);
+            }
+        });
 
         listOfPlaced = new JList();
         listOfPlaced.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent evt) {
                 JList list = (JList) evt.getSource();
                 c.selected = list.locationToIndex(evt.getPoint());
+                c.selectedInList = c.selected;
                 if (evt.getClickCount() == 2) {
                     edit(c.selected);
                     // Double-click detected
@@ -144,7 +172,13 @@ public class MobapGameEditor extends JFrame implements Runnable {
         btnPanel.add(addCircle);
         rightBtnPanel.add(deleteShape);
         rightBtnPanel.add(editShape);
+        //rightBtnPanel2nd.add(edit1);
+        //rightBtnPanel2nd.add(edit2);
         rightPanel.add(rightBtnPanel, BorderLayout.NORTH);
+        //rightPanel.add(rightBtnPanel2nd, BorderLayout.NORTH);
+        rightPanel.add(moveToStart, BorderLayout.NORTH);
+        rightPanel.add(edit1, BorderLayout.NORTH);
+        rightPanel.add(edit2, BorderLayout.NORTH);
         rightPanel.add(listOfPlaced, BorderLayout.NORTH);
         c.setBackground(Color.black);
         //c.setMinimumSize(new Dimension(500, 500));
@@ -177,6 +211,7 @@ public class MobapGameEditor extends JFrame implements Runnable {
         leftToRight.addGroup(columnRight);
         layout.setVerticalGroup(columnLeft);
         layout.setHorizontalGroup(leftToRight);*/
+        //add(panel);
         add(panel);
 
         addComponentListener(new ComponentAdapter() {
@@ -200,7 +235,7 @@ public class MobapGameEditor extends JFrame implements Runnable {
         long start = 0;
         String[] listData;
         try {
-            Thread.sleep(sleep);
+            Thread.sleep(sleep  8);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

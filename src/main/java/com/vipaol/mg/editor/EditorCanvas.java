@@ -49,19 +49,56 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
     int rwY = carY + wheelRadius / 2;
     int zoomBase = 1000;
     int zoomOut = zoomBase;
+    Font font;
+    boolean inited = false;
+    
+    int w = 0;
+    int h = 0;
+
+    int btnW, btnH;
+    int xUpperBtnsOffset = 0;
 
     public EditorCanvas() {
         addMouseListener(this);
         addMouseMotionListener(this);
         addMouseWheelListener(this);
     }
+    
+    /*void init() {
+        w = getWidth();
+        h = getHeight();
+        btnW = w / mainBtns.length;
+        btnH = h / 24;
+        offsetX = w / 2;
+        offsetY = h / 2;
+        relMouseX = 0;
+        relMouseY = 0;
+        mouseOnCanvX = calcX(relMouseX);
+        mouseOnCanvY = calcY(relMouseY);
+        textSize = getOptimalTextSize(btnW, btnH, "XXXXXX");
+        lesserTextSize = getOptimalTextSize(btnW, btnH / 3, "XXXXXX");
+        //paint.setTextSize(24 * w * h / 1080 / 1920);
+        font = new Font("font", Font.PLAIN, btnH / 3 * 2);
+        repaint();
+    }*/
 
     // paint the canvas
     @Override
     public void paint(Graphics g) {
+    	
+    	if (!inited) {
+            //init();
+            inited = true;
+        }
+    	
+    	//setFontSize(btnH / 3 * 2);
+
+    	g.setColor(new Color(0xaaaa00));
+        if (true | elements.wrongStartPointWarning | elements.wrongStartOfCurrPlacing) {
+            g.drawString("Warn: start point should be on (x,y) 0 0", 50, 50);
+        }
+    	
         drawCar(g);
-        // set Font
-        g.setFont(new Font("Bold", 1, 20));
 
         // draw a string
         //g.drawString("It's a Canvas!", mouseX, mouseY);
@@ -517,6 +554,7 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
         }
         boolean suppressFirstClick = false;
         void edit(int idInList, int startWithStep) {
+        	System.out.println("move");
             mgStruct.updateHistory();
             currEditingIdInList = idInList;
             if (isBusy) {
@@ -697,5 +735,8 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
     }*/
     void reloadList() {
         mgStruct.changed = true;
+    }
+    void setFontSize(int size) {
+    	setFont(new Font("font", Font.PLAIN, size));
     }
 }
