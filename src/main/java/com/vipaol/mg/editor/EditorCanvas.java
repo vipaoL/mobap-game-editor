@@ -94,7 +94,7 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
     	//setFontSize(btnH / 3 * 2);
 
     	g.setColor(new Color(0xaaaa00));
-        if (true | elements.wrongStartPointWarning | elements.wrongStartOfCurrPlacing) {
+        if (elements.wrongStartPointWarning | elements.wrongStartOfCurrPlacing) {
             g.drawString("Warn: start point should be on (x,y) 0 0", 50, 50);
         }
     	
@@ -165,6 +165,44 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
             int ky = data[7];
             int zoomed2R = applyZoom(r) * 2;
             g.drawArc(calcX(x - r), calcY(y - r), zoomed2R * kx / 100, zoomed2R * kx / 100, offset, ang);
+        } else if (id == 4) { // breakable line
+            int x1 = data[1];
+            int y1 = data[2];
+            int x2 = data[3];
+            int y2 = data[4];
+            int ths = data[5];
+            ths = applyZoom(ths);
+            if (ths <= 0)
+                ths = 1;
+            int platfL = data[6];
+            int spacing = data[7];
+            int dx = x2 - x1;
+            int dy = y2 - y1;
+
+            int l;
+            if (dy == 0) {
+                l = dx;
+            } else if (dx == 0) {
+                l = dy;
+            } else {
+                l = elements.calcDistance(x1, y1, x2, y2);
+            }
+
+            if (l <= 0) {
+                l = 1;
+            }
+
+            if (platfL <= 0) {
+                platfL = 50;
+            }
+
+            int spX = spacing * dx / l;
+            int spY = spacing * dy / l;
+
+            int n = l / (platfL + spacing);
+            for (int i = 0; i < n; i++) {
+                g.drawLine(calcX(x1 + i * dx / n), calcY(y1 + i * dy / n), calcX(x1 + (i + 1) * (dx / n) - spX), calcY(y1 + (i + 1) * (dy / n) - spY));
+            }
         }
     }
 
@@ -449,6 +487,9 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
                     }
                     platfL = platfL1;
                     platfL -= spacing;
+                    if (platfL < optimalPlatfL / 2) {
+                    	platfL = l;
+                    }
                     currentPlacing[6] = (short) platfL;
                     currentPlacing[7] = (short) spacing;
                     currentPlacing[8] = (short) (l - spacing);

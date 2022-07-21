@@ -103,6 +103,15 @@ public class MobapGameEditor extends JFrame implements Runnable {
                 c.elements.place(3);
             }
         });
+        
+        JButton breakblLine = new JButton("Breakable line");
+        breakblLine.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                c.elements.place(4);
+            }
+        });
+
 
         ///////////////////////// RIGHT
         rightBtnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -170,6 +179,7 @@ public class MobapGameEditor extends JFrame implements Runnable {
         btnPanel.add(save);
         btnPanel.add(addLine);
         btnPanel.add(addCircle);
+        btnPanel.add(breakblLine);
         rightBtnPanel.add(deleteShape);
         rightBtnPanel.add(editShape);
         //rightBtnPanel2nd.add(edit1);
@@ -235,7 +245,7 @@ public class MobapGameEditor extends JFrame implements Runnable {
         long start = 0;
         String[] listData;
         try {
-            Thread.sleep(sleep  8);
+            Thread.sleep(sleep * 8);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
