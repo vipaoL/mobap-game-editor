@@ -90,7 +90,7 @@ public class MobapGameEditor extends JFrame implements Runnable {
         addLine.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                c.placeElement.place(2);
+                c.elements.place(2);
             }
         });
 
@@ -98,7 +98,7 @@ public class MobapGameEditor extends JFrame implements Runnable {
         addCircle.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                c.placeElement.place(3);
+                c.elements.place(3);
             }
         });
 
@@ -109,7 +109,7 @@ public class MobapGameEditor extends JFrame implements Runnable {
         deleteShape.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                c.placeElement.delete(c.selected);
+                c.elements.delete(c.selected);
             }
         });
 
@@ -208,7 +208,6 @@ public class MobapGameEditor extends JFrame implements Runnable {
         c.repaint();
         while (!stopped) {
             start = System.currentTimeMillis();
-            c.repaint();
 
             if (c.mgStruct.changed) {
                 c.mgStruct.changed = false;
@@ -218,6 +217,7 @@ public class MobapGameEditor extends JFrame implements Runnable {
                 }
                 listOfPlaced.setListData(listData);
                 //listOfPlaced.setFixedCellWidth(500);
+                c.repaint();
             }
             
             calculateSizes();
@@ -279,4 +279,30 @@ public class MobapGameEditor extends JFrame implements Runnable {
 
         repaint();
     }
+    
+    public static boolean showDialog(String title, String question) {
+        JFrame jFrame = new JFrame();
+        return JOptionPane.showConfirmDialog(jFrame, question, title, JOptionPane.OK_CANCEL_OPTION) == 0;
+    }
+    
+    Color COLOR_LNDSCP = Color.decode("#4444ff");
+    Color COLOR_SELECTED = Color.decode("#8822ff");
+    int centrPointRadius = 2;
+
+
+
+    short currPlacingID = 0;
+    int selectedOption = -1;
+    int selectedOptionInUpperRow = -1;
+    int selectedInList = 0;
+    int selectedIn3Row = -1;
+
+    //Elements elements = new Elements();
+    EditorCanvas editorCanvas;
+
+    boolean inited = false;
+    
+    
+    
+    
 }

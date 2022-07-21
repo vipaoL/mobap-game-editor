@@ -33,7 +33,7 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
     int relMouseY = 0;
     int mouseOnCanvX = 0;
     int mouseOnCanvY = 0;
-    PlaceStruct placeElement = new PlaceStruct();
+    Elements elements = new Elements();
     MGStruct mgStruct = new MGStruct();
     int selected = 0;
     public int carX = 0;
@@ -83,23 +83,24 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
         g.setColor(new Color(0x00ff00));
         g.fillRect(calcX(0) - centrPointRadius, calcY(0) - centrPointRadius, centrPointRadius * 2, centrPointRadius * 2);
 
-        if (entered/*placeStruct.isBusy*/) { // preview
-            g.setColor(new Color(0xffffff));
-            g.fillArc(calcX(relMouseX) - 2, calcY(relMouseY) - 2, 4, 4, 0, 360);
-            short x = (short) relMouseX;
-            short y = (short) relMouseY;
-            String hint = x + " " + y;
-            if (placeElement.step > 1) {
-                short id = placeElement.currentPlacing[0];
-                int step = placeElement.step;
-                placeElement.calcArgs(id, step, x, y);
-                if (id == 3) {
-                    hint = String.valueOf(placeElement.currentPlacing[3]);
+        g.setColor(new Color(0xffffff));
+        g.fillArc(calcX(relMouseX) - 2, calcY(relMouseY) - 2, 4, 4, 0, 360);
+        
+        short x = (short) relMouseX;
+        short y = (short) relMouseY;
+        String hint = x + " " + y;
+        if (elements.isBusy) { // preview
+            short id = elements.currentPlacing[0];
+            int step = elements.step;
+            if ((step > 1 | mgStruct.clicks[id] < 2) | elements.isEditing) {
+                elements.calcArgs(id, step, x, y);
+                if ((id == 3 | id == 5) & step > 1) {
+                    hint = String.valueOf(elements.currentPlacing[3]);
                 }
-                drawElement(g, id, placeElement.currentPlacing);
+                drawElement(g, id, elements.currentPlacing);
             }
-            g.drawString(hint, 30, 30);
         }
+        g.drawString(hint, mouseOnCanvX + 30, mouseOnCanvY + 30);
     }
 
     public void drawElement(Graphics g, short id, short[] data) {
@@ -166,7 +167,7 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
 
     public void mouseReleased(MouseEvent e) {
         if (currPlacingID != 0 & !dragging) {
-            if (placeElement.clicked(relMouseX, relMouseY)) {
+            if (elements.clicked(relMouseX, relMouseY)) {
                 currPlacingID = 0;
             }
         } else {
@@ -196,7 +197,7 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
 
     public void mouseExited(MouseEvent e) {
         entered = false;
-        placeElement.cancel();
+        elements.cancel();
         repaint();
     }
 
@@ -206,8 +207,10 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
 
     @Override
     public void mouseMoved(MouseEvent e) {
-        relMouseX = revCalcX(e.getX());
-        relMouseY = revCalcY(e.getY());
+        mouseOnCanvX = e.getX();
+        mouseOnCanvY = e.getY();
+        relMouseX = revCalcX(mouseOnCanvX);
+        relMouseY = revCalcY(mouseOnCanvY);
         repaint();
     }
 
@@ -221,13 +224,21 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
         if (zoomOut <= 0) {
             zoomOut = 1;
         }
+        offsetX = mouseOnCanvX - applyZoom(relMouseX);
+        offsetY = mouseOnCanvY - applyZoom(relMouseY);
         repaint();
     }
 
-    public class PlaceStruct {
+    int selectedOption = -1;
+    int selectedOptionInUpperRow = -1;
+    int selectedInList = 0;
+    int selectedIn3Row = -1;
+    public class Elements {
 
         short[] currentPlacing;
         private boolean isBusy = false;
+        private boolean isEditing = false;
+        private int currEditingIdInList = -1;
         private int step = 0;
         short x0 = 0;
         short y0 = 0;
@@ -236,47 +247,106 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
             if (id == 0) {
                 currPlacingID = (short) id;
                 isBusy = false;
+                isEditing = false;
                 step = 0;
             } else if (!isBusy) {
+                mgStruct.updateHistory();
                 isBusy = true;
                 currPlacingID = (short) id;
                 step = 1;
                 currentPlacing = new short[mgStruct.args[currPlacingID] + 1];
                 currentPlacing[0] = currPlacingID;
                 return true;
+            } else {
+                int currID = currPlacingID;
+                cancel();
+                if (id != currID) {
+                    place(id);
+                } else {
+                    selectedOption = -1;
+                    selectedOptionInUpperRow = -1;
+                }
             }
             return false;
         }
 
+        public boolean place(int id, int x, int y) {
+            if (id == 0) {
+                currPlacingID = (short) id;
+                isBusy = false;
+                step = 0;
+            } else if (!isBusy) {
+                mgStruct.updateHistory();
+                isBusy = true;
+                currPlacingID = (short) id;
+                step = 1;
+                currentPlacing = new short[mgStruct.args[currPlacingID] + 1];
+                currentPlacing[0] = currPlacingID;
+                clicked(x, y);
+                return true;
+            } else {
+                int currID = currPlacingID;
+                cancel();
+                if (id != currID) {
+                    place(id, x, y);
+                } else {
+                    selectedOption = -1;
+                    selectedOptionInUpperRow = -1;
+                }
+            }
+            return false;
+        }
+        
         public boolean clicked(int x, int y) {
+            if (suppressFirstClick) {
+                suppressFirstClick = false;
+                return false;
+            }
             short xShort = (short) x;
             short yShort = (short) y;
-            System.out.println("" + x);
             if (isBusy) {
                 if (step >= mgStruct.clicks[currPlacingID]) {
+                    selectedOption = -1;
+                    selectedOptionInUpperRow = -1;
                     isBusy = false;
                     for (int i : currentPlacing) {
                         System.out.print(i + " ");
                     }
-                    mgStruct.saveToBuffer(currentPlacing);
-                    selected = mgStruct.length - 1;
-                    calcEndPoint();
-                    //writeFile(currentPlacing);
-                    //input = readFile();
+                    if (!isEditing) {
+                        mgStruct.saveToBuffer(currentPlacing);
+                        selectedInList = mgStruct.length - 1;
+                    } else {
+                        if (currEditingIdInList > -1) {
+                            mgStruct.buffer[currEditingIdInList] = currentPlacing;
+                        }
+                    }
+                    reloadList();
+                    if (currPlacingID != 1)
+                        calcEndPoint();
+                    currPlacingID = 0;
+                    isEditing = false;
+                    wrongStartOfCurrPlacing = false;
+                    checkStartPoint();
                     return true;
                 }
                 calcArgs(currPlacingID, step, xShort, yShort);
+                if (isEditing) {
+                    step = 3000;
+                    clicked(x, y);
+                }
                 step++;
             }
             return false;
         }
         
+        boolean wrongStartPointWarning = false;
+        boolean wrongStartOfCurrPlacing = false;
         void calcArgs(short id, int step, short x, short y) {
-            if (currPlacingID == 1) {
+            if (id == 1) {
                 currentPlacing[1] = x;
                 currentPlacing[2] = y;
             } else
-            if (currPlacingID == 2) {
+            if (id == 2) {
                 if (step == 1) {
                     currentPlacing[1] = x;
                     currentPlacing[2] = y;
@@ -285,7 +355,7 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
                     currentPlacing[4] = y;
                 }
             } else
-            if (currPlacingID == 3) {
+            if (id == 3) {
                 if (step == 1) {
                     currentPlacing[1] = x;
                     currentPlacing[2] = y;
@@ -303,21 +373,253 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
                     currentPlacing[6] = 100;
                     currentPlacing[7] = 100;
                 }
+            } else
+            if (id == 4) {
+                if (step == 1) {
+                    currentPlacing[1] = x;
+                    currentPlacing[2] = y;
+                } else if (step == 2) {
+                    currentPlacing[3] = x;
+                    currentPlacing[4] = y;
+                    currentPlacing[5] = 20;
+                    int dx = currentPlacing[3] - currentPlacing[1];
+                    int dy = currentPlacing[4] - currentPlacing[2];
+                    int l;
+                    int spacing = 10;
+                    if (dy == 0) {
+                        l = dx;
+                    } else if (dx == 0) {
+                        l = dy;
+                    } else {
+                        l = calcDistance(dx, dy);
+                    }
+                    l += spacing;
+                    if (l <= 0) {
+                        l = 1;
+                    }
+                    int optimalPlatfL = 130;
+                    int platfL = optimalPlatfL;
+                    if (platfL > l) {
+                        platfL = l;
+                    }
+                    int platfL1 = platfL;
+                    while (l%platfL != 0 & platfL < l & l%platfL1 != 0) {
+                        platfL++;
+                        platfL1--;
+                    }
+                    if (l%platfL == 0) {
+                        platfL1 = platfL;
+                    }
+                    platfL = platfL1;
+                    platfL -= spacing;
+                    currentPlacing[6] = (short) platfL;
+                    currentPlacing[7] = (short) spacing;
+                    currentPlacing[8] = (short) (l - spacing);
+                    currentPlacing[9] = (short) Math.toDegrees(Math.atan2(dy, dx));
+                }
+            } else
+            if (id == 5) {
+                if (step == 1) {
+                    currentPlacing[1] = x;
+                    currentPlacing[2] = y;
+                }
+                if (step == 2) {
+                    x0 = currentPlacing[1];
+                    y0 = currentPlacing[2];
+                    //short dx = (short) (x - x0);
+                    //short dy = (short) (y - y0);
+                    //System.out.println(dx + " " + dy);
+                    currentPlacing[3] = (short) calcDistance(x0, y0, x, y);
+                    //System.out.println("r:" + currentPlacing[carriage]);
+                    currentPlacing[4] = 360;
+                    currentPlacing[5] = 0;
+                    currentPlacing[6] = 100;
+                    currentPlacing[7] = 100;
+                    currentPlacing[8] = 20;
+                }
             }
+
+            short currCheckingX = currentPlacing[1];
+            short currCheckingY = currentPlacing[2];
+            if (id == 2 | id == 4) {
+                short x2nd = currentPlacing[3];
+                short y2nd = currentPlacing[4];
+                if (compareAsStarts(currCheckingX, currCheckingY, x2nd, y2nd)) {
+                    currCheckingX = x2nd;
+                    currCheckingY = y2nd;
+                }
+            } else if (id == 3 | id == 5) {
+                int r = currentPlacing[3];
+                currCheckingX -= r;
+            }
+            wrongStartOfCurrPlacing = (currCheckingX != 0 | currCheckingY != 0) & mgStruct.length < 2;
+            if (currCheckingX < 0) {
+                wrongStartOfCurrPlacing = true;
+            }
+        }
+        
+        public void calcEndPoint() {
+            short x = 0;
+            short y = 0;
+            for (int i = 1; i < mgStruct.length; i++) {
+                short currCheckingX = mgStruct.buffer[i][1];
+                short currCheckingY = mgStruct.buffer[i][2];
+                int id = mgStruct.buffer[i][0];
+                if (id == 2 | id == 4) {
+                    short x2nd = mgStruct.buffer[i][3];
+                    short y2nd = mgStruct.buffer[i][4];
+                    if (compareAsEnds(currCheckingX, currCheckingY, x2nd, y2nd)) {
+                        currCheckingX = x2nd;
+                       currCheckingY = y2nd;
+                    }
+                } else if (id == 3 | id == 5) {
+                    int r = mgStruct.buffer[i][3];
+                    currCheckingX += r;
+                }
+                if (compareAsEnds(x, y, currCheckingX, currCheckingY)) {
+                    x = currCheckingX;
+                    y = currCheckingY;
+                }
+            }
+            mgStruct.buffer[0][1] = x;
+            mgStruct.buffer[0][2] = y;
+        }
+        private boolean compareAsEnds(short x, short y, short currCheckingX, short currCheckingY) {
+            if (currCheckingX >= x) {
+                if (currCheckingX > x | (currCheckingY > y)) {
+                    x = currCheckingX;
+                    y = currCheckingY;
+                    return true;
+                }
+            }
+            return false;
         }
 
         public void cancel() {
             place(0);
             repaint();
         }
-
+        
         void delete(int i) {
+            if (i == 0 | mgStruct.buffer[i][0] == 1) {
+                return;
+            }
+            mgStruct.updateHistory();
+
             mgStruct.length--;
             for (int j = i; j < mgStruct.length; j++) {
                 mgStruct.buffer[j] = mgStruct.buffer[j + 1];
             }
-            selected = mgStruct.length - 1;
+            selectedInList = mgStruct.length - 1;
+            calcEndPoint();
+            reloadList();
             repaint();
+        }
+        boolean suppressFirstClick = false;
+        void edit(int idInList, int startWithStep) {
+            mgStruct.updateHistory();
+            currEditingIdInList = idInList;
+            if (isBusy) {
+                cancel();
+            }
+            int id = mgStruct.buffer[idInList][0];
+            if (mgStruct.clicks[id] < startWithStep) {
+                selectedOptionInUpperRow = -1;
+                return;
+            }
+            isEditing = true;
+
+            if (id == 0) {
+                currPlacingID = (short) id;
+                isBusy = false;
+                step = 0;
+                isEditing = false;
+            } else if (!isBusy) {
+                isBusy = true;
+                currentPlacing = mgStruct.buffer[idInList];
+                currPlacingID = (short) id;
+                step = startWithStep;
+                //return true;
+            } else {
+                int currID = currPlacingID;
+                cancel();
+                if (id != currID) {
+                    edit(idInList, startWithStep);
+                } else {
+                    selectedOption = -1;
+                    selectedOptionInUpperRow = -1;
+                }
+            }
+            //suppressFirstClick = true;
+            //return false;
+        }
+
+        void moveAllToStartPoint() {
+            mgStruct.updateHistory();
+            short[] dxdy = checkStartPoint();
+            int dx = -dxdy[0];
+            int dy = -dxdy[1];
+
+            for (int i = 0; i < mgStruct.length; i++) {
+                int id = mgStruct.buffer[i][0];
+                mgStruct.buffer[i][1] += dx;
+                mgStruct.buffer[i][2] += dy;
+                if (id == 2 | id == 4) {
+                    mgStruct.buffer[i][3] += dx;
+                    mgStruct.buffer[i][4] += dy;
+                }
+            }
+            selectedIn3Row = -1;
+            wrongStartPointWarning = false;
+        }
+
+        public short[] checkStartPoint() {
+            short x = 0;
+            short y = 0;
+            boolean first = true;
+            for (int i = 1; i < mgStruct.length; i++) {
+                short currCheckingX = mgStruct.buffer[i][1];
+                short currCheckingY = mgStruct.buffer[i][2];
+                if (first) {
+                    x = currCheckingX;
+                    y = currCheckingY;
+                    first = false;
+                }
+                int id = mgStruct.buffer[i][0];
+                if (id == 2 | id == 4) {
+                    short x2nd = mgStruct.buffer[i][3];
+                    short y2nd = mgStruct.buffer[i][4];
+                    if (compareAsStarts(currCheckingX, currCheckingY, x2nd, y2nd)) {
+                        currCheckingX = x2nd;
+                        currCheckingY = y2nd;
+                    }
+                } else if (id == 3 | id == 5) {
+                    int r = mgStruct.buffer[i][3];
+                    currCheckingX -= r;
+                }
+                if (compareAsStarts(x, y, currCheckingX, currCheckingY)) {
+                    x = currCheckingX;
+                    y = currCheckingY;
+                }
+            }
+            wrongStartPointWarning = (x != 0) | (y != 0);
+            return new short[]{x, y};
+        }
+        private boolean compareAsStarts(short x, short y, short currCheckingX, short currCheckingY) {
+            if (currCheckingX <= x) {
+                if (currCheckingX < x | (currCheckingY < y)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        int calcDistance(int x1, int y1, int x2, int y2) {
+            int dx = x2 - x1;
+            int dy = y2 - y1;
+            return calcDistance(dx, dy);
+        }
+        int calcDistance(int dx, int dy) {
+            return (int) Math.sqrt(dx * dx + dy * dy);
         }
     }
 
@@ -326,6 +628,7 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
         offsetY = getHeight() / 2;
         carX = 0 - (carbodyLength / 2 - wheelRadius);
         carY = 0 - wheelRadius / 2 * 3 - 2;
+        elements.place(1, 0, 0);
     }
     
     void drawCar(Graphics g) {
@@ -360,7 +663,7 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
         return mgStruct.shapeNames[id];
     }
 
-    void calcEndPoint() {
+    /*void calcEndPoint() {
         short x = 0;
         short y = 0;
         for (int i = 1; i < mgStruct.length; i++) {
@@ -391,5 +694,8 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
             }
         }
         return false;
+    }*/
+    void reloadList() {
+        mgStruct.changed = true;
     }
 }

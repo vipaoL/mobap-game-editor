@@ -12,60 +12,57 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
 
 /**
  *
  * @author vipaol
  */
 public class MGStruct {
-    int[] clicks = {0, 1, 2, 2};
-    int[] args = {0, 2, 4, 7};
-    String[] shapeNames = {"terminate", "End point", "Line", "Circle"};
-    String[] argsDescriptions = {"0", "x,y", "x1,y1,x2,y2", "x,y,radius,arc-angle,arc-offset,x-coefficient,y-coefficient"};
-    public MGStruct() {
-    }
+    int[] clicks = {0, /*1*/1, /*2*/2, /*3*/2, /*4*/2, /*5*/2};
+    int[] args = {0, /*1*/2, /*2*/4, /*3*/7, /*4*/9, /*5*/10};
+    String[] shapeNames = {"terminate", /*1*/"End point", /*2*/"Line", /*3*/"Circle", /*4*/"Breakable line", /*5*/"Breakable circle"};
+    String[] argsDescriptions = {"0", /*1*/"x, y", /*2*/"x1, y1, x2, y2", /*3*/"x, y, radius, arc-angle, arc-offset, x-coefficient, y-coefficient",
+            /*4*/"x1, y1, x2, y2, thickness, platform length, spacing, length, angle", /*5*/"x, y, radius, arc-angle, arc-offset, x-coefficient, y-coefficient, thickness, platform length, spacing"};
     
     short supportedFileVer = 1;
-    int length = 0;
-    short fVervion = supportedFileVer;
+    short fileVersion = supportedFileVer;
     String name = "test" + ".mgstruct";
-    short[][] buffer;
+    String parentPath = "./";
+    String path = parentPath + name;
+    short[][] buffer = new short[256][];
     int bufSizeInShort = 0;
     boolean changed = true;
+    int length = 0;
+    short[][] history = new short[buffer.length][];;
+    int oldLength = length;
     
     public boolean loadFile() {
+        path = parentPath + name;
         length = 0;
         try {
-            File f = new File("./" + name);
+            File f = new File(path);
             if (f.exists()) {
                 InputStream is = new FileInputStream(f);
                 DataInputStream dis = new DataInputStream(is);
-                int available = dis.available();
-                available /= 2;
-                System.out.println(available + f.getAbsolutePath());
                 
-                fVervion = dis.readShort();
-                System.out.println("file version: " + fVervion);
+                fileVersion = dis.readShort();
                 boolean cancelled = false;
                 
-                if (fVervion != supportedFileVer) {
-                    if (fVervion == 0) {
-                        cancelled = !showDialog("Older file version", "Older file ver: " + fVervion + ". Actual is: " + supportedFileVer + ". This file can be converted and will be signed with version nubmer " + supportedFileVer + " on the next save. Open?");
+                if (fileVersion != supportedFileVer) {
+                    if (fileVersion == 0) {
+                        cancelled = !MobapGameEditor.showDialog("Older file version", "Older file ver: " + fileVersion + ". Actual is: " + supportedFileVer + ". This file can be converted and will be signed with version nubmer " + supportedFileVer + " on the next save. Open?");
                     } else {
-                        cancelled = !showDialog("Unsupported file version", "Unsupported file ver: " + fVervion + ". Supported is: " + supportedFileVer + ". Try to open anyway?");
+                        cancelled = !MobapGameEditor.showDialog("Unsupported file version", "Unsupported file ver: " + fileVersion + ". Supported is: " + supportedFileVer + ". Try to open anyway?");
                     }
                 }
                 if (!cancelled) {
-                    if (fVervion == 0) {
+                    if (fileVersion == 0) {
                         length = 16;
                     } else {
                         length = dis.readShort();
                     }
                     
-                    buffer = new short[length][];
-                    
+                    buffer = new short[length * 16][];
                     length = 0;
                     
                     while (true) {
@@ -74,22 +71,30 @@ public class MGStruct {
                         if (id == 0) {
                             break;
                         } else {
-                            short[] data = new short[args[id] + 1];
+                            int argsN = args[id];
+                            short[] data = new short[argsN + 1];
+                            /*if (id == 4 | id == 5) {
+                                argsN -= 2;
+                            }*/
                             data[0] = id;
-                            for (int i = 1; i < args[id] + 1; i++) {
+                            for (int i = 1; i < argsN + 1; i++) {
                                 data[i] = dis.readShort();
                             }
                             saveToBuffer(data);
                             for (int i : data) {
                                 System.out.print(i + " ");
                             }
-                            System.out.println(". ");
+                            System.out.println(".");
                         }
                     }
                 }
                 dis.close();
                 is.close();
                 return true;
+            } else {
+                System.out.println("not exists");
+                short[] data = {1, 0, 0};
+                saveToBuffer(data);
             }
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -98,12 +103,13 @@ public class MGStruct {
     }
 
     public boolean saveToFile() {
+        path = parentPath + name;
         try {
-            File f = new File("./" + name);
+            File f = new File(path);
             if (!f.exists()) {
                 f.createNewFile();
             } else {
-                if (!showDialog("File already exists", "Replace " + name + "?")) {
+                if (!MobapGameEditor.showDialog("File already exists", "Replace " + name + "?")) {
                     return false;
                 }
             }
@@ -135,19 +141,34 @@ public class MGStruct {
         bufSizeInShort += data.length;
         changed = true;
     }
+    void updateHistory() {
+        oldLength = length;
+        history = buffer.clone();
+        System.out.println("HISTORY UPDATED");
+    }
+    void undo() {
+        int tmp = length;
+        short[][] tmpArr = buffer.clone();
+        buffer = history.clone();
+        length = oldLength;
+        history = tmpArr.clone();
+        oldLength = tmp;
+        System.out.println("Length=" + String.valueOf(length));
+    }
+    void redo() {
+        //TODO
+    }
+    boolean isUndoAvailable() {
+        return true;
+    }
+    boolean isRedoAvailable() {
+        return false; //TODO
+    }
+
     short[] readBuf(int i) {
         return buffer[i];
     }
     int getBufSize() {
         return length;
-    }
-    
-    public boolean showDialog(String title, String question) {
-        JFrame jFrame = new JFrame();
-        if(JOptionPane.showConfirmDialog(jFrame, question, title, JOptionPane.OK_CANCEL_OPTION) == 0) {
-            return true;
-        } else {
-            return false;
-        }
     }
 }
