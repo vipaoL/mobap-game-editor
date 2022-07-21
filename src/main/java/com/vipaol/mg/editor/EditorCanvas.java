@@ -650,6 +650,7 @@ public class EditorCanvas extends Canvas implements MouseListener, MouseMotionLi
             }
             selectedIn3Row = -1;
             wrongStartPointWarning = false;
+            repaint();
         }
 
         public short[] checkStartPoint() {
