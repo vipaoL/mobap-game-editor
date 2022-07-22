@@ -205,7 +205,7 @@ public class MobapGameEditor extends JFrame implements Runnable {
         rightPanel.add(edit1, BorderLayout.NORTH);
         rightPanel.add(edit2, BorderLayout.NORTH);
         rightPanel.add(listOfPlaced, BorderLayout.NORTH);
-        //rightPanel.setMaximumSize(new Dimension(200, 1000));
+        rightPanel.setMaximumSize(new Dimension(200, 1000));
         
         c.setBackground(Color.black);
         //c.setMinimumSize(new Dimension(500, 500));
