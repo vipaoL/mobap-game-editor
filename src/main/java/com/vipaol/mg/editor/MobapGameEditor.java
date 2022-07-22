@@ -71,11 +71,12 @@ public class MobapGameEditor extends JFrame implements Runnable {
         load.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                
-                JFrame jFrame = new JFrame();
-                c.mgStruct.name = JOptionPane.showInputDialog(jFrame, "File name", c.mgStruct.name);
-                c.mgStruct.loadFile();
-                c.selected = c.mgStruct.length - 1;
+                String name = JOptionPane.showInputDialog(new JFrame(), "File name", c.mgStruct.name);
+                if (name != null) {
+                	c.mgStruct.name = name;
+	                c.mgStruct.loadFile();
+	                c.selected = c.mgStruct.length - 1;
+                }
             }
         });
 
@@ -84,6 +85,18 @@ public class MobapGameEditor extends JFrame implements Runnable {
             @Override
             public void actionPerformed(ActionEvent e) {
                 c.mgStruct.saveToFile();
+            }
+        });
+        
+        JButton saveAs = new JButton("Save as");
+        saveAs.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	String name = JOptionPane.showInputDialog(new JFrame(), "File name", c.mgStruct.name);
+                if (name != null) {
+                	c.mgStruct.name = name;
+                	c.mgStruct.saveToFile();
+                }
             }
         });
 
@@ -177,9 +190,11 @@ public class MobapGameEditor extends JFrame implements Runnable {
 
         btnPanel.add(load);
         btnPanel.add(save);
+        btnPanel.add(saveAs);
         btnPanel.add(addLine);
         btnPanel.add(addCircle);
         btnPanel.add(breakblLine);
+        
         rightBtnPanel.add(deleteShape);
         rightBtnPanel.add(editShape);
         //rightBtnPanel2nd.add(edit1);
@@ -190,10 +205,13 @@ public class MobapGameEditor extends JFrame implements Runnable {
         rightPanel.add(edit1, BorderLayout.NORTH);
         rightPanel.add(edit2, BorderLayout.NORTH);
         rightPanel.add(listOfPlaced, BorderLayout.NORTH);
+        //rightPanel.setMaximumSize(new Dimension(200, 1000));
+        
         c.setBackground(Color.black);
         //c.setMinimumSize(new Dimension(500, 500));
         editorPanel.add(btnPanel, BorderLayout.NORTH);
         editorPanel.add(c, BorderLayout.WEST);
+        
         panel.add(editorPanel, BorderLayout.WEST);
         panel.add(rightPanel, BorderLayout.EAST);
 
